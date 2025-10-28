@@ -237,6 +237,49 @@ export function InteractivePreview2D({ config, onHoleClick, onCanvasClick, onHol
 
     const { scale, offsetX, offsetY } = scaleData
 
+    // Draw grid
+    const gridSize = 50 // Grid spacing in mm
+    const gridSpacing = gridSize * scale
+
+    ctx.strokeStyle = '#e5e7eb'
+    ctx.lineWidth = 1
+
+    // Vertical grid lines
+    for (let x = 0; x <= config.width; x += gridSize) {
+      const canvasX = offsetX + x * scale
+      ctx.beginPath()
+      ctx.moveTo(canvasX, offsetY)
+      ctx.lineTo(canvasX, offsetY + config.height * scale)
+      ctx.stroke()
+    }
+
+    // Horizontal grid lines
+    for (let y = 0; y <= config.height; y += gridSize) {
+      const canvasY = offsetY + y * scale
+      ctx.beginPath()
+      ctx.moveTo(offsetX, canvasY)
+      ctx.lineTo(offsetX + config.width * scale, canvasY)
+      ctx.stroke()
+    }
+
+    // Draw grid labels
+    ctx.fillStyle = '#9ca3af'
+    ctx.font = '9px sans-serif'
+    ctx.textAlign = 'center'
+
+    // X-axis labels
+    for (let x = gridSize; x < config.width; x += gridSize) {
+      const canvasX = offsetX + x * scale
+      ctx.fillText(`${x}`, canvasX, offsetY - 3)
+    }
+
+    // Y-axis labels
+    ctx.textAlign = 'right'
+    for (let y = gridSize; y < config.height; y += gridSize) {
+      const canvasY = offsetY + y * scale
+      ctx.fillText(`${y}`, offsetX - 3, canvasY + 3)
+    }
+
     // Draw rectangle
     ctx.strokeStyle = '#4f46e5'
     ctx.lineWidth = 2
