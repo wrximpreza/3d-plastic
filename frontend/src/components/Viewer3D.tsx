@@ -1,11 +1,15 @@
-import { Canvas, useThree } from '@react-three/fiber'
+import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import { OrbitControls, Grid, PerspectiveCamera } from '@react-three/drei'
 import { PlasticPart } from './PlasticPart'
 import { useConfigStore } from '../store/useConfigStore'
-import { useRef, useImperativeHandle, forwardRef } from 'react'
+import { useRef, useImperativeHandle, forwardRef, useState } from 'react'
 import type { OrbitControls as OrbitControlsType } from 'three-stdlib'
 
-const CameraControls = forwardRef((props, ref) => {
+interface CameraControlsProps {
+  autoRotate: boolean
+}
+
+const CameraControls = forwardRef<any, CameraControlsProps>(({ autoRotate }, ref) => {
   const controlsRef = useRef<OrbitControlsType>(null)
   const { camera } = useThree()
 
@@ -45,6 +49,8 @@ const CameraControls = forwardRef((props, ref) => {
       maxPolarAngle={Math.PI / 2}
       enableZoom={true}
       zoomSpeed={1.2}
+      autoRotate={autoRotate}
+      autoRotateSpeed={2.0}
       touches={{
         ONE: 2, // TOUCH.ROTATE
         TWO: 0, // TOUCH.DOLLY_PAN
@@ -56,6 +62,7 @@ const CameraControls = forwardRef((props, ref) => {
 export function Viewer3D() {
   const config = useConfigStore((state) => state.config)
   const controlsRef = useRef<any>(null)
+  const [autoRotate, setAutoRotate] = useState(false)
 
   const handleZoomIn = () => {
     controlsRef.current?.zoomIn()
@@ -67,6 +74,10 @@ export function Viewer3D() {
 
   const handleReset = () => {
     controlsRef.current?.reset()
+  }
+
+  const toggleAutoRotate = () => {
+    setAutoRotate(!autoRotate)
   }
 
   return (
@@ -107,7 +118,7 @@ export function Viewer3D() {
         <PlasticPart config={config} />
 
         {/* Camera controls */}
-        <CameraControls ref={controlsRef} />
+        <CameraControls ref={controlsRef} autoRotate={autoRotate} />
       </Canvas>
 
       {/* Zoom Controls */}
@@ -132,6 +143,17 @@ export function Viewer3D() {
           title="Reset View"
         >
           ⟲
+        </button>
+        <button
+          onClick={toggleAutoRotate}
+          className={`w-10 h-10 rounded-lg shadow-lg flex items-center justify-center font-bold text-xl transition-colors ${
+            autoRotate
+              ? 'bg-blue-500 hover:bg-blue-600 text-white'
+              : 'bg-white/90 hover:bg-white text-gray-800'
+          }`}
+          title={autoRotate ? "Stop Auto-Rotate" : "Auto-Rotate 360°"}
+        >
+          ↻
         </button>
       </div>
 
