@@ -26,25 +26,4 @@ services:
         value: /usr/bin/freecadcmd
     healthCheckPath: /api/health
     autoDeploy: true
-    disk:
-      name: backend-data
-      mountPath: /app
-      sizeGB: 1
-
-  # Frontend
-  - type: web
-    name: plastic-configurator-frontend
-    env: static
-    region: frankfurt
-    plan: free
-    buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: ./frontend/dist
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    envVars:
-      - key: VITE_API_URL
-        value: https://plastic-configurator-backend.onrender.com
-    autoDeploy: true
 
