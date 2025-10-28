@@ -40,8 +40,9 @@ docker-compose down -v
 
 **Features:**
 - ✅ Free tier with Docker support
-- ✅ PostgreSQL included
+- ✅ Uses SQLite (no database setup needed)
 - ✅ Auto-deploy from Git
+- ✅ Persistent disk for SQLite database
 - ⚠️ Spins down after 15 min inactivity
 
 **Steps:**
@@ -66,10 +67,10 @@ docker-compose down -v
    - Push changes to trigger redeployment
 
 **Manual Deployment:**
-- Create PostgreSQL database
 - Create Web Service for backend (Docker)
 - Create Static Site for frontend
 - Set environment variables as shown in `render.yaml`
+- Add persistent disk for SQLite database (1GB free)
 
 ---
 
@@ -79,7 +80,7 @@ docker-compose down -v
 - ✅ $5 free credit monthly
 - ✅ Docker support
 - ✅ No cold starts
-- ✅ PostgreSQL included
+- ✅ Uses SQLite (no database setup needed)
 
 **Steps:**
 
@@ -92,11 +93,7 @@ docker-compose down -v
    - Select your repository
    - Railway will auto-detect Dockerfile
 
-3. **Add PostgreSQL**
-   - Click "New" → "Database" → "PostgreSQL"
-   - Railway will auto-create DATABASE_URL
-
-4. **Set Environment Variables**
+3. **Set Environment Variables**
    ```
    CORS_ORIGINS=<your-frontend-url>
    STORAGE_TYPE=local
@@ -104,7 +101,7 @@ docker-compose down -v
    FREECAD_PYTHON=/usr/bin/freecadcmd
    ```
 
-5. **Deploy Frontend**
+4. **Deploy Frontend**
    - Create new service from same repo
    - Set root directory to `frontend`
    - Build command: `npm install && npm run build`

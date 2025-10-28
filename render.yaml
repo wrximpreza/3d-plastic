@@ -1,15 +1,5 @@
 services:
-  # PostgreSQL Database
-  - type: pserv
-    name: plastic-configurator-db
-    env: docker
-    plan: free
-    region: frankfurt
-    databases:
-      - name: plastic_configurator
-        user: plastic_user
-
-  # Backend API with FreeCAD
+  # Backend API with FreeCAD and SQLite
   - type: web
     name: plastic-configurator-backend
     env: docker
@@ -18,10 +8,6 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: plastic-configurator-db
-          property: connectionString
       - key: HOST
         value: 0.0.0.0
       - key: PORT
@@ -40,6 +26,10 @@ services:
         value: /usr/bin/freecadcmd
     healthCheckPath: /api/health
     autoDeploy: true
+    disk:
+      name: backend-data
+      mountPath: /app
+      sizeGB: 1
 
   # Frontend
   - type: web
