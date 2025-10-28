@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: plastic_configurator_db
+    environment:
+      POSTGRES_USER: plastic_user
+      POSTGRES_PASSWORD: plastic_password
+      POSTGRES_DB: plastic_configurator
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U plastic_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: plastic_configurator_backend
+    environment:
+      - DATABASE_URL=postgresql://plastic_user:plastic_password@db:5432/plastic_configurator
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEBUG=False
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:80,http://localhost
+      - STORAGE_TYPE=local
+      - STORAGE_PATH=/app/storage/cad_files
+      - FREECAD_PATH=/usr/lib/freecad-python3/lib
+      - FREECAD_PYTHON=/usr/bin/freecadcmd
+    volumes:
+      - backend_storage:/app/storage
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: plastic_configurator_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - app-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  backend_storage:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge
+
