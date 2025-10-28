@@ -317,41 +317,54 @@ FreeCAD.closeDocument(doc.Name)
                 errors.append('Invalid STEP format: missing END-ISO-10303-21 footer')
 
             # Check for material information (more flexible matching)
+            # Note: FreeCAD's standard STEP export doesn't include custom properties
+            # Material info is only in fallback mode or if FreeCAD properties are exported
             material_found = (
                 config.material in content or
                 config.material.replace(' ', '_') in content or
                 config.material.replace(' ', '') in content
             )
-            if not material_found:
+            # Only warn if using fallback mode (which should have material)
+            if not material_found and 'FreeCAD Fallback' in content:
                 warnings.append(f'Material "{config.material}" not found in STEP file')
 
             # Check for dimension references (more flexible matching)
-            # Convert to float to handle both integer and decimal representations
+            # Convert to int/float to handle both integer and decimal representations
+            # FreeCAD uses format like "440." or "440.0" in CARTESIAN_POINT
+            width_int = int(config.width) if config.width == int(config.width) else config.width
             width_variations = [
-                str(config.width),
+                str(width_int),
+                f'{width_int}.',
+                f'{config.width}',
                 f'{config.width}.',
                 f'{float(config.width)}',
-                f'({config.width}',
+                f'({width_int}',
                 f'{config.width}mm'
             ]
             if not any(var in content for var in width_variations):
                 warnings.append(f'Width dimension ({config.width}mm) not clearly referenced')
 
+            height_int = int(config.height) if config.height == int(config.height) else config.height
             height_variations = [
-                str(config.height),
+                str(height_int),
+                f'{height_int}.',
+                f'{config.height}',
                 f'{config.height}.',
                 f'{float(config.height)}',
-                f'({config.height}',
+                f'({height_int}',
                 f'{config.height}mm'
             ]
             if not any(var in content for var in height_variations):
                 warnings.append(f'Height dimension ({config.height}mm) not clearly referenced')
 
+            thickness_int = int(config.thickness) if config.thickness == int(config.thickness) else config.thickness
             thickness_variations = [
-                str(config.thickness),
+                str(thickness_int),
+                f'{thickness_int}.',
+                f'{config.thickness}',
                 f'{config.thickness}.',
                 f'{float(config.thickness)}',
-                f'({config.thickness}',
+                f'({thickness_int}',
                 f'{config.thickness}mm'
             ]
             if not any(var in content for var in thickness_variations):
