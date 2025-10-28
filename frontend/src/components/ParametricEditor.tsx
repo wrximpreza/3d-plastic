@@ -182,33 +182,6 @@ export function ParametricEditor() {
   return (
     <div className="h-full overflow-y-auto bg-white shadow-xl">
       <div className="p-4 md:p-6 space-y-6">
-        {/* Notification */}
-        {notification && (
-          <div className={`p-4 rounded-lg border ${
-            notification.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' :
-            notification.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' :
-            'bg-yellow-50 border-yellow-200 text-yellow-800'
-          } flex items-start justify-between`}>
-            <div className="flex items-start gap-3">
-              <span className="text-xl">
-                {notification.type === 'success' && !isGeneratingCAD ? '✓' :
-                 notification.type === 'error' ? '✗' :
-                 notification.type === 'warning' ? '⚠' :
-                 '⏳'}
-              </span>
-              <p className="text-sm font-medium">{notification.message}</p>
-            </div>
-            {!isGeneratingCAD && (
-              <button
-                onClick={() => setNotification(null)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-        )}
-
         {/* Header */}
         <div className="border-b pb-4">
           <h1 className="text-2xl font-bold text-gray-900">Configure Part</h1>
@@ -362,6 +335,33 @@ export function ParametricEditor() {
 
         {/* Order Section */}
         <section className="pt-4 border-t space-y-3">
+          {/* Notification */}
+          {notification && (
+            <div className={`p-4 rounded-lg border ${
+              notification.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' :
+              notification.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' :
+              'bg-yellow-50 border-yellow-200 text-yellow-800'
+            } flex items-start justify-between`}>
+              <div className="flex items-start gap-3">
+                <span className="text-xl">
+                  {notification.type === 'success' && !isGeneratingCAD ? '✓' :
+                   notification.type === 'error' ? '✗' :
+                   notification.type === 'warning' ? '⚠' :
+                   '⏳'}
+                </span>
+                <p className="text-sm font-medium">{notification.message}</p>
+              </div>
+              {!isGeneratingCAD && (
+                <button
+                  onClick={() => setNotification(null)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          )}
+
           <button
             onClick={handlePlaceOrder}
             disabled={isOrdering || isGeneratingCAD}
