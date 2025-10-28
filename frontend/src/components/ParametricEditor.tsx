@@ -326,7 +326,7 @@ export function ParametricEditor() {
           </div>
           <div className="flex items-center justify-between">
             <span className="text-lg font-semibold text-gray-900">Estimated Price</span>
-            <span className="text-2xl font-bold text-primary">${estimatedPrice}</span>
+            <span className="text-2xl font-bold text-primary">€{estimatedPrice}</span>
           </div>
           <p className="text-xs text-gray-600 mt-1">
             Material: {config.material} • {config.holes.length} holes
@@ -372,9 +372,9 @@ export function ParametricEditor() {
 
           <button
             onClick={handleDownloadCAD}
-            disabled={isGeneratingCAD || isOrdering}
+            disabled={isGeneratingCAD}
             className={`w-full py-2 rounded-lg transition-colors font-medium ${
-              isGeneratingCAD || isOrdering
+              isGeneratingCAD
                 ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
                 : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}

@@ -1,5 +1,5 @@
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
-import { OrbitControls, Grid, PerspectiveCamera } from '@react-three/drei'
+import { OrbitControls, PerspectiveCamera } from '@react-three/drei'
 import { PlasticPart } from './PlasticPart'
 import { useConfigStore } from '../store/useConfigStore'
 import { useRef, useImperativeHandle, forwardRef, useState } from 'react'
@@ -98,20 +98,6 @@ export function Viewer3D() {
           shadow-mapSize-height={2048}
         />
         <pointLight position={[-10, -10, -5]} intensity={0.5} />
-
-        {/* Grid helper */}
-        <Grid
-          args={[3000, 3000]}
-          cellSize={100}
-          cellThickness={0.5}
-          cellColor="#6b7280"
-          sectionSize={500}
-          sectionThickness={1}
-          sectionColor="#9ca3af"
-          fadeDistance={4000}
-          fadeStrength={1}
-          followCamera={false}
-        />
 
         {/* The plastic part */}
         <PlasticPart config={config} />
