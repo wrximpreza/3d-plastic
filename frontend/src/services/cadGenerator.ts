@@ -262,7 +262,7 @@ LAYER
 0
 LAYER
 2
-GEOMETRY
+CIRCLES
 70
 0
 62
@@ -321,7 +321,7 @@ ${holes.map((hole) => {
   return `0
 CIRCLE
 8
-GEOMETRY
+CIRCLES
 10
 ${x}
 20

@@ -522,7 +522,7 @@ LAYER
   0
 LAYER
   2
-GEOMETRY
+CIRCLES
  70
 0
  62
@@ -582,7 +582,7 @@ OUTLINE
             dxf += f"""  0
 CIRCLE
   8
-GEOMETRY
+CIRCLES
  10
 {hole.x}
  20
