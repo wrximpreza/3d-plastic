@@ -46,7 +46,6 @@ const CameraControls = forwardRef<any, CameraControlsProps>(({ autoRotate }, ref
       dampingFactor={0.05}
       minDistance={200}
       maxDistance={2000}
-      maxPolarAngle={Math.PI / 2}
       enableZoom={true}
       zoomSpeed={1.2}
       autoRotate={autoRotate}
