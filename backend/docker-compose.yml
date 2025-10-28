@@ -1,34 +1,15 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
-  db:
-    image: postgres:15-alpine
-    container_name: plastic_configurator_db
-    environment:
-      POSTGRES_USER: plastic_user
-      POSTGRES_PASSWORD: plastic_password
-      POSTGRES_DB: plastic_configurator
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U plastic_user"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   # Backend API
   backend:
     build: .
     container_name: plastic_configurator_backend
     environment:
-      - DATABASE_URL=postgresql://plastic_user:plastic_password@db:5432/plastic_configurator
       - HOST=0.0.0.0
       - PORT=8000
       - DEBUG=True
-      - CORS_ORIGINS=http://localhost:3000,http://localhost:4173
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:4173,http://localhost:80
       - STORAGE_TYPE=local
       - STORAGE_PATH=/app/storage/cad_files
       - FREECAD_PATH=/usr/lib/freecad-python3/lib
@@ -38,11 +19,5 @@ services:
       - .:/app
     ports:
       - "8000:8000"
-    depends_on:
-      db:
-        condition: service_healthy
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-
-volumes:
-  postgres_data:
 

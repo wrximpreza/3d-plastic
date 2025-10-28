@@ -22,11 +22,13 @@ Access the application:
 - Backend API: http://localhost:8000
 - API Docs: http://localhost:8000/docs
 
+**Note:** Local deployment uses SQLite database (no PostgreSQL needed).
+
 ### Stop the services:
 ```bash
 docker-compose down
 
-# Remove volumes (database data)
+# Remove volumes (storage and database data)
 docker-compose down -v
 ```
 
@@ -196,7 +198,19 @@ docker-compose down -v
 
 ## 🔧 Environment Variables
 
-### Backend
+### Backend (Local - SQLite)
+```env
+HOST=0.0.0.0
+PORT=8000
+DEBUG=True
+CORS_ORIGINS=http://localhost:3000,http://localhost:80
+STORAGE_TYPE=local
+STORAGE_PATH=/app/storage/cad_files
+FREECAD_PATH=/usr/lib/freecad-python3/lib
+FREECAD_PYTHON=/usr/bin/freecadcmd
+```
+
+### Backend (Production - PostgreSQL)
 ```env
 DATABASE_URL=postgresql://user:password@host:5432/dbname
 HOST=0.0.0.0
@@ -219,7 +233,9 @@ VITE_API_URL=https://your-backend-url.com
 ## 📝 Notes
 
 - **FreeCAD Support**: All Docker deployments include FreeCAD binary for CAD generation
-- **Database**: Use PostgreSQL for production (included in all platforms)
+- **Database**:
+  - Local development uses SQLite (no setup needed)
+  - Production deployments use PostgreSQL (included in all platforms)
 - **Storage**: Local storage is used for CAD files (consider S3 for production)
 - **Cold Starts**: Free tiers may have cold starts (15-30 seconds on first request)
 
