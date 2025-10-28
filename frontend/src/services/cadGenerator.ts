@@ -321,7 +321,7 @@ ${holes.map((hole) => {
   return `0
 CIRCLE
 8
-0
+GEOMETRY
 10
 ${x}
 20

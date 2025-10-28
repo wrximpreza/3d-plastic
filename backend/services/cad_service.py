@@ -582,7 +582,7 @@ OUTLINE
             dxf += f"""  0
 CIRCLE
   8
-0
+GEOMETRY
  10
 {hole.x}
  20
