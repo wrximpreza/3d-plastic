@@ -333,10 +333,10 @@ export function InteractivePreview2D({ config, onHoleClick, onCanvasClick, onHol
     ctx.font = '12px sans-serif'
     ctx.textAlign = 'center'
     // Width dimension - centered on the rectangle
-    ctx.fillText(`${config.width} mm`, offsetX + (config.width * scale) / 2, offsetY - 10)
+    ctx.fillText(`${config.width} mm`, offsetX + (config.width * scale) / 2, offsetY - 25)
     ctx.save()
     // Height dimension - centered on the rectangle
-    ctx.translate(offsetX - 15, offsetY + (config.height * scale) / 2)
+    ctx.translate(offsetX - 30, offsetY + (config.height * scale) / 2)
     ctx.rotate(-Math.PI / 2)
     ctx.fillText(`${config.height} mm`, 0, 0)
     ctx.restore()

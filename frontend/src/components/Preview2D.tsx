@@ -118,17 +118,17 @@ export function Preview2D({ config }: Preview2DProps) {
     ctx.fillStyle = '#374151'
     ctx.font = '12px sans-serif'
     ctx.textAlign = 'center'
-    
+
     // Width dimension
     ctx.fillText(
       `${config.width} mm`,
       canvas.width / 2,
-      offsetY - 10
+      offsetY - 25
     )
-    
+
     // Height dimension
     ctx.save()
-    ctx.translate(offsetX - 15, canvas.height / 2)
+    ctx.translate(offsetX - 30, canvas.height / 2)
     ctx.rotate(-Math.PI / 2)
     ctx.fillText(`${config.height} mm`, 0, 0)
     ctx.restore()
