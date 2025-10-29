@@ -11,7 +11,7 @@ services:
       - HOST=0.0.0.0
       - PORT=8000
       - DEBUG=True
-      - CORS_ORIGINS=http://localhost:3000,http://localhost:80,http://localhost
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:80,http://localhost,http://54.146.163.228,https://54.146.163.228,http://ec2-54-146-163-228.compute-1.amazonaws.com,https://ec2-54-146-163-228.compute-1.amazonaws.com
       - STORAGE_TYPE=local
       - STORAGE_PATH=/app/storage/cad_files
       - FREECAD_PATH=/usr/lib/freecad-python3/lib
