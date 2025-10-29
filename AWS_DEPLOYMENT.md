@@ -23,17 +23,16 @@ Complete guide to deploy the Plastic Configurator on AWS EC2.
 3. **Configure Instance**:
    - **Name**: `plastic-configurator`
    - **AMI**: Ubuntu Server 22.04 LTS (Free tier eligible)
-   - **Instance Type**: `t2.medium` or `t3.medium` (recommended for FreeCAD)
-     - t2.micro is too small for FreeCAD
-     - t2.medium: 2 vCPU, 4 GB RAM (~$0.0464/hour)
-     - t3.medium: 2 vCPU, 4 GB RAM (~$0.0416/hour)
+   - **Instance Type**: `t2.small` (Free tier eligible)
+     - t2.small: 1 vCPU, 2 GB RAM (Free for 750 hours/month for 12 months)
+     - Note: FreeCAD may be slow, but it will work
    - **Key pair**: Create new or select existing
      - Download the `.pem` file and keep it safe!
    - **Network Settings**:
      - ✅ Allow SSH traffic from: Your IP
      - ✅ Allow HTTP traffic from: Anywhere
      - ✅ Allow HTTPS traffic from: Anywhere
-   - **Storage**: 20 GB gp3 (minimum)
+   - **Storage**: 30 GB gp3 (Free tier: up to 30 GB)
 
 4. **Click "Launch Instance"**
 
@@ -65,10 +64,10 @@ aws ec2 authorize-security-group-ingress \
 # Launch instance
 aws ec2 run-instances \
     --image-id ami-0c55b159cbfafe1f0 \
-    --instance-type t2.medium \
+    --instance-type t2.small \
     --key-name your-key-pair \
     --security-groups plastic-configurator-sg \
-    --block-device-mappings DeviceName=/dev/sda1,Ebs={VolumeSize=20}
+    --block-device-mappings DeviceName=/dev/sda1,Ebs={VolumeSize=30}
 ```
 
 ---
@@ -99,6 +98,8 @@ ssh -i your-key.pem ubuntu@YOUR_EC2_PUBLIC_IP
 ---
 
 ## 📦 Step 3: Deploy Application
+
+**Note**: t2.small has 2GB RAM. FreeCAD will work but may be slower for complex CAD generation. For better performance, consider upgrading to t2.medium after testing.
 
 ### Automated Deployment (Recommended):
 
@@ -240,24 +241,24 @@ sudo certbot --nginx -d yourdomain.com
 
 ## 💰 Cost Estimate
 
-### EC2 Instance (t2.medium):
-- **On-Demand**: ~$33.60/month (24/7)
-- **Reserved (1 year)**: ~$20/month
-- **Spot Instance**: ~$10/month (can be interrupted)
+### Free Tier (First 12 Months):
+- **EC2 Instance (t2.small)**: FREE (750 hours/month)
+- **Storage (30 GB gp3)**: FREE (up to 30 GB)
+- **Data Transfer**: FREE (first 100 GB/month)
 
-### Storage (20 GB):
-- **gp3**: ~$1.60/month
+**Total Cost**: $0/month for first 12 months! ✅
 
-### Data Transfer:
-- **First 100 GB/month**: Free
-- **After 100 GB**: $0.09/GB
+### After Free Tier Expires:
+- **EC2 Instance (t2.small)**: ~$16.80/month (24/7)
+- **Storage (30 GB)**: ~$2.40/month
+- **Data Transfer**: FREE (first 100 GB/month)
 
-**Total Estimate**: ~$35-40/month for 24/7 operation
+**Total Estimate**: ~$19-20/month for 24/7 operation
 
 ### Cost Optimization:
-- Use **Spot Instances** for development (~70% cheaper)
-- Stop instance when not in use (pay only for storage)
-- Use **t3.medium** instead of t2.medium (slightly cheaper)
+- **Stop instance when not in use** (pay only for storage ~$2.40/month)
+- **Use Spot Instances** for development (~70% cheaper)
+- **Upgrade to t2.medium** if you need better performance (~$33/month)
 
 ---
 
