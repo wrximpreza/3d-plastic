@@ -29,6 +29,7 @@ export interface PartConfig {
 
 interface ConfigStore {
   config: PartConfig
+  customShapeFinalized: boolean
   updateForm: (form: FormType) => void
   updateDimensions: (width: number, height: number) => void
   updateThickness: (thickness: number) => void
@@ -45,6 +46,8 @@ interface ConfigStore {
   removeCustomPoint: (index: number) => void
   removeLastCustomPoint: () => void
   clearCustomPoints: () => void
+  finalizeCustomShape: () => void
+  editCustomShape: () => void
   resetConfig: () => void
 }
 
@@ -62,10 +65,13 @@ const defaultConfig: PartConfig = {
 
 export const useConfigStore = create<ConfigStore>((set) => ({
   config: defaultConfig,
+  customShapeFinalized: false,
 
   updateForm: (form) =>
     set((state) => ({
       config: { ...state.config, form },
+      // Reset customShapeFinalized when switching forms
+      customShapeFinalized: form === 'custom' ? false : state.customShapeFinalized,
     })),
 
   updateDimensions: (width, height) =>
@@ -166,8 +172,19 @@ export const useConfigStore = create<ConfigStore>((set) => ({
   clearCustomPoints: () =>
     set((state) => ({
       config: { ...state.config, customPoints: [] },
+      customShapeFinalized: false,
     })),
 
-  resetConfig: () => set({ config: defaultConfig }),
+  finalizeCustomShape: () =>
+    set(() => ({
+      customShapeFinalized: true,
+    })),
+
+  editCustomShape: () =>
+    set(() => ({
+      customShapeFinalized: false,
+    })),
+
+  resetConfig: () => set({ config: defaultConfig, customShapeFinalized: false }),
 }))
 

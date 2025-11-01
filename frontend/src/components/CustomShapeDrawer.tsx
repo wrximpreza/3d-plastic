@@ -8,6 +8,8 @@ interface CustomShapeDrawerProps {
   onRemovePoint: (index: number) => void
   onRemoveLastPoint: () => void
   onClearPoints: () => void
+  onApplyShape?: () => void
+  isFinalized?: boolean
   width: number
   height: number
   cornerRadius?: number
@@ -20,6 +22,8 @@ export function CustomShapeDrawer({
   onRemovePoint,
   onRemoveLastPoint,
   onClearPoints,
+  onApplyShape,
+  isFinalized = false,
   width,
   height,
   cornerRadius = 0,
@@ -28,6 +32,15 @@ export function CustomShapeDrawer({
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+
+  // Clear selection states when shape is finalized
+  useEffect(() => {
+    if (isFinalized) {
+      setDraggingIndex(null)
+      setHoveredIndex(null)
+      setSelectedIndex(null)
+    }
+  }, [isFinalized])
 
   const getCanvasCoordinates = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
@@ -314,78 +327,82 @@ export function CustomShapeDrawer({
 
       ctx.stroke()
 
-      // Draw points
-      points.forEach((point, index) => {
-        const x = offsetX + point.x * scale
-        const y = offsetY + point.y * scale
+      // Draw points only if not finalized
+      if (!isFinalized) {
+        points.forEach((point, index) => {
+          const x = offsetX + point.x * scale
+          const y = offsetY + point.y * scale
 
-        // Determine point appearance based on state
-        const isHovered = index === hoveredIndex
-        const isSelected = index === selectedIndex
-        const isDragging = index === draggingIndex
-        const isFirst = index === 0
+          // Determine point appearance based on state
+          const isHovered = index === hoveredIndex
+          const isSelected = index === selectedIndex
+          const isDragging = index === draggingIndex
+          const isFirst = index === 0
 
-        // Draw outer glow for hovered/selected points
-        if (isHovered || isSelected || isDragging) {
+          // Draw outer glow for hovered/selected points
+          if (isHovered || isSelected || isDragging) {
+            ctx.beginPath()
+            ctx.arc(x, y, 10, 0, Math.PI * 2)
+            ctx.fillStyle = isDragging ? 'rgba(239, 68, 68, 0.3)' :
+                            isSelected ? 'rgba(251, 191, 36, 0.3)' :
+                            'rgba(79, 70, 229, 0.3)'
+            ctx.fill()
+          }
+
+          // Draw main point
           ctx.beginPath()
-          ctx.arc(x, y, 10, 0, Math.PI * 2)
-          ctx.fillStyle = isDragging ? 'rgba(239, 68, 68, 0.3)' :
-                          isSelected ? 'rgba(251, 191, 36, 0.3)' :
-                          'rgba(79, 70, 229, 0.3)'
+          const radius = (isHovered || isSelected || isDragging) ? 8 : 6
+          ctx.arc(x, y, radius, 0, Math.PI * 2)
+          ctx.fillStyle = isDragging ? '#ef4444' :
+                          isSelected ? '#fbbf24' :
+                          isFirst ? '#10b981' : '#4f46e5'
           ctx.fill()
-        }
+          ctx.strokeStyle = '#ffffff'
+          ctx.lineWidth = 2
+          ctx.stroke()
 
-        // Draw main point
-        ctx.beginPath()
-        const radius = (isHovered || isSelected || isDragging) ? 8 : 6
-        ctx.arc(x, y, radius, 0, Math.PI * 2)
-        ctx.fillStyle = isDragging ? '#ef4444' :
-                        isSelected ? '#fbbf24' :
-                        isFirst ? '#10b981' : '#4f46e5'
-        ctx.fill()
-        ctx.strokeStyle = '#ffffff'
-        ctx.lineWidth = 2
-        ctx.stroke()
+          // Draw point number
+          ctx.fillStyle = '#ffffff'
+          ctx.font = 'bold 10px sans-serif'
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'middle'
+          ctx.fillText((index + 1).toString(), x, y)
 
-        // Draw point number
-        ctx.fillStyle = '#ffffff'
-        ctx.font = 'bold 10px sans-serif'
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.fillText((index + 1).toString(), x, y)
-
-        // Show coordinates for selected/hovered point
-        if (isSelected || isHovered) {
-          ctx.fillStyle = '#374151'
-          ctx.font = '11px sans-serif'
-          ctx.fillText(
-            `(${Math.round(point.x)}, ${Math.round(point.y)})`,
-            x,
-            y - 18
-          )
-        }
-      })
+          // Show coordinates for selected/hovered point
+          if (isSelected || isHovered) {
+            ctx.fillStyle = '#374151'
+            ctx.font = '11px sans-serif'
+            ctx.fillText(
+              `(${Math.round(point.x)}, ${Math.round(point.y)})`,
+              x,
+              y - 18
+            )
+          }
+        })
+      }
     }
 
-    // Draw instructions
-    ctx.fillStyle = '#6b7280'
-    ctx.font = '12px sans-serif'
-    ctx.textAlign = 'center'
-    ctx.fillText(
-      points.length === 0
-        ? 'Click to add points to draw your custom shape'
-        : `${points.length} point${points.length > 1 ? 's' : ''} - Drag to move, double-click to delete`,
-      canvas.width / 2,
-      20
-    )
-  }, [points, width, height, cornerRadius, hoveredIndex, selectedIndex, draggingIndex])
+    // Draw instructions only if not finalized
+    if (!isFinalized) {
+      ctx.fillStyle = '#6b7280'
+      ctx.font = '12px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText(
+        points.length === 0
+          ? 'Click to add points to draw your custom shape'
+          : `${points.length} point${points.length > 1 ? 's' : ''} - Drag to move, double-click to delete`,
+        canvas.width / 2,
+        20
+      )
+    }
+  }, [points, width, height, cornerRadius, hoveredIndex, selectedIndex, draggingIndex, isFinalized])
 
   return (
     <div className="bg-white p-4 rounded-lg shadow-md">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-semibold text-gray-700">Draw Custom Shape</h3>
         <div className="flex gap-2">
-          {selectedIndex !== null && (
+          {selectedIndex !== null && !isFinalized && (
             <button
               onClick={() => {
                 onRemovePoint(selectedIndex)
@@ -396,20 +413,24 @@ export function CustomShapeDrawer({
               🗑 Delete Point #{selectedIndex + 1}
             </button>
           )}
-          <button
-            onClick={onRemoveLastPoint}
-            disabled={points.length === 0}
-            className="px-3 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-          >
-            ↶ Undo
-          </button>
-          <button
-            onClick={onClearPoints}
-            disabled={points.length === 0}
-            className="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-          >
-            ✕ Clear
-          </button>
+          {!isFinalized && (
+            <>
+              <button
+                onClick={onRemoveLastPoint}
+                disabled={points.length === 0}
+                className="px-3 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              >
+                ↶ Undo
+              </button>
+              <button
+                onClick={onClearPoints}
+                disabled={points.length === 0}
+                className="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              >
+                ✕ Clear
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -417,32 +438,50 @@ export function CustomShapeDrawer({
         ref={canvasRef}
         width={600}
         height={400}
-        onClick={handleClick}
-        onDoubleClick={handleDoubleClick}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        className="w-full border border-gray-200 rounded cursor-crosshair"
+        onClick={!isFinalized ? handleClick : undefined}
+        onDoubleClick={!isFinalized ? handleDoubleClick : undefined}
+        onMouseDown={!isFinalized ? handleMouseDown : undefined}
+        onMouseMove={!isFinalized ? handleMouseMove : undefined}
+        onMouseUp={!isFinalized ? handleMouseUp : undefined}
+        onMouseLeave={!isFinalized ? handleMouseUp : undefined}
+        className={`w-full border border-gray-200 rounded ${isFinalized ? 'cursor-default' : 'cursor-crosshair'}`}
       />
 
-      <div className="mt-2 text-xs text-gray-600">
-        <p>• <strong>Click</strong> on canvas to add points</p>
-        <p>• <strong>Click & Drag</strong> points to move them</p>
-        <p>• <strong>Double-click</strong> a point to delete it</p>
-        <p>• <strong>Hover</strong> over points to see coordinates</p>
-        <p>• First point is green, selected is yellow, others are blue</p>
-      </div>
+      {!isFinalized && (
+        <div className="mt-2 text-xs text-gray-600">
+          <p>• <strong>Click</strong> on canvas to add points</p>
+          <p>• <strong>Click & Drag</strong> points to move them</p>
+          <p>• <strong>Double-click</strong> a point to delete it</p>
+          <p>• <strong>Hover</strong> over points to see coordinates</p>
+          <p>• First point is green, selected is yellow, others are blue</p>
+        </div>
+      )}
 
-      {points.length >= 3 && (
-        <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
-          <p className="text-xs text-green-800">
-            ✓ Custom shape ready! ({points.length} points)
+      {isFinalized && (
+        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded">
+          <p className="text-sm text-blue-800 font-medium">
+            ✓ Custom shape applied! You can now add holes or other features.
           </p>
         </div>
       )}
 
-      {points.length > 0 && points.length < 3 && (
+      {!isFinalized && points.length >= 3 && (
+        <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded flex items-center justify-between">
+          <p className="text-xs text-green-800">
+            ✓ Custom shape ready! ({points.length} points)
+          </p>
+          {onApplyShape && (
+            <button
+              onClick={onApplyShape}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm"
+            >
+              Apply Shape ✓
+            </button>
+          )}
+        </div>
+      )}
+
+      {!isFinalized && points.length > 0 && points.length < 3 && (
         <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
           <p className="text-xs text-yellow-800">
             ⚠ Add {3 - points.length} more point{3 - points.length > 1 ? 's' : ''} to complete the shape
@@ -451,7 +490,7 @@ export function CustomShapeDrawer({
       )}
 
       {/* Point Coordinates Editor */}
-      {points.length > 0 && (
+      {points.length > 0 && !isFinalized && (
         <div className="mt-3 border-t border-gray-200 pt-3">
           <h4 className="text-xs font-semibold text-gray-700 mb-2">Point Coordinates</h4>
           <div className="max-h-48 overflow-y-auto space-y-2">

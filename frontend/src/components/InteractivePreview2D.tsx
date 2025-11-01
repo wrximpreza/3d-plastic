@@ -60,6 +60,22 @@ export function InteractivePreview2D({ config, onHoleClick, onCanvasClick, onHol
     return { x: partX, y: partY }
   }, [getScaleAndOffset])
 
+  // Check if a point is inside a polygon using ray casting algorithm
+  const isPointInPolygon = useCallback((x: number, y: number, points: Array<{x: number, y: number}>) => {
+    let inside = false
+    for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+      const xi = points[i].x
+      const yi = points[i].y
+      const xj = points[j].x
+      const yj = points[j].y
+
+      const intersect = ((yi > y) !== (yj > y)) &&
+        (x < (xj - xi) * (y - yi) / (yj - yi) + xi)
+      if (intersect) inside = !inside
+    }
+    return inside
+  }, [])
+
   const findHoleAtPosition = useCallback((canvasX: number, canvasY: number): Hole | null => {
     const scaleData = getScaleAndOffset()
     if (!scaleData) return null
@@ -211,17 +227,30 @@ export function InteractivePreview2D({ config, onHoleClick, onCanvasClick, onHol
     if (!coords) return
 
     const hole = findHoleAtPosition(coords.x, coords.y)
-    
+
     if (hole && onHoleClick) {
       onHoleClick(hole)
     } else if (!hole && onCanvasClick) {
       const partCoords = getPartCoordinates(coords.x, coords.y)
-      if (partCoords && partCoords.x >= 0 && partCoords.x <= config.width && 
-          partCoords.y >= 0 && partCoords.y <= config.height) {
+      if (!partCoords) return
+
+      let isInsideShape = false
+
+      // Check if click is inside the shape based on form type
+      if (config.form === 'custom' && config.customPoints && config.customPoints.length >= 3) {
+        // For custom shapes, use polygon point-in-polygon test
+        isInsideShape = isPointInPolygon(partCoords.x, partCoords.y, config.customPoints)
+      } else {
+        // For other shapes, use bounding box check
+        isInsideShape = partCoords.x >= 0 && partCoords.x <= config.width &&
+                        partCoords.y >= 0 && partCoords.y <= config.height
+      }
+
+      if (isInsideShape) {
         onCanvasClick(partCoords.x, partCoords.y)
       }
     }
-  }, [getCanvasCoordinates, findHoleAtPosition, onHoleClick, onCanvasClick, getPartCoordinates, config.width, config.height])
+  }, [getCanvasCoordinates, findHoleAtPosition, onHoleClick, onCanvasClick, getPartCoordinates, config.width, config.height, config.form, config.customPoints, isPointInPolygon])
 
   useEffect(() => {
     const canvas = canvasRef.current

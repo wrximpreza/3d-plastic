@@ -21,7 +21,7 @@ const configSchema = z.object({
 type ConfigFormData = z.infer<typeof configSchema>
 
 export function ParametricEditor() {
-  const { config, updateForm, updateDimensions, updateThickness, updateMaterial, updateColor, updateCornerRadius, updateAssemblyDetails, addHole, updateHole, removeHole, addCustomPoint, updateCustomPoint, removeCustomPoint, removeLastCustomPoint, clearCustomPoints } = useConfigStore()
+  const { config, customShapeFinalized, updateForm, updateDimensions, updateThickness, updateMaterial, updateColor, updateCornerRadius, updateAssemblyDetails, addHole, updateHole, removeHole, addCustomPoint, updateCustomPoint, removeCustomPoint, removeLastCustomPoint, clearCustomPoints, finalizeCustomShape, editCustomShape } = useConfigStore()
   const [quantity, setQuantity] = useState(1)
   const [isOrdering, setIsOrdering] = useState(false)
   const [orderStatus, setOrderStatus] = useState<string>('')
@@ -240,17 +240,47 @@ export function ParametricEditor() {
 
         {/* Custom Shape Drawer - Only show for custom form */}
         {config.form === 'custom' ? (
-          <CustomShapeDrawer
-            points={config.customPoints || []}
-            onAddPoint={addCustomPoint}
-            onUpdatePoint={updateCustomPoint}
-            onRemovePoint={removeCustomPoint}
-            onRemoveLastPoint={removeLastCustomPoint}
-            onClearPoints={clearCustomPoints}
-            width={config.width}
-            height={config.height}
-            cornerRadius={config.cornerRadius}
-          />
+          <>
+            <CustomShapeDrawer
+              points={config.customPoints || []}
+              onAddPoint={addCustomPoint}
+              onUpdatePoint={updateCustomPoint}
+              onRemovePoint={removeCustomPoint}
+              onRemoveLastPoint={removeLastCustomPoint}
+              onClearPoints={clearCustomPoints}
+              onApplyShape={finalizeCustomShape}
+              isFinalized={customShapeFinalized}
+              width={config.width}
+              height={config.height}
+              cornerRadius={config.cornerRadius}
+            />
+
+            {/* Show preview and hole controls only after shape is finalized */}
+            {customShapeFinalized && (
+              <>
+                {/* Edit Shape Button */}
+                <div className="bg-white p-4 rounded-lg shadow-md">
+                  <button
+                    onClick={editCustomShape}
+                    className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                  >
+                    ✏️ Edit Custom Shape
+                  </button>
+                </div>
+
+                {/* Interactive 2D Preview */}
+                <InteractivePreview2D
+                  config={config}
+                  onHoleClick={handleHoleClick}
+                  onCanvasClick={handleCanvasClick}
+                  onHoleDrag={handleHoleDrag}
+                />
+
+                {/* Static 2D Preview */}
+                <Preview2D config={config} />
+              </>
+            )}
+          </>
         ) : (
           <>
             {/* Interactive 2D Preview */}
@@ -394,55 +424,57 @@ export function ParametricEditor() {
           </p>
         </section>
 
-        {/* Holes Section */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-gray-800">4. Functional Features - Holes ({config.holes.length})</h2>
-            <button
-              onClick={handleAddHole}
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-            >
-              + Add Hole
-            </button>
-          </div>
-          
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {config.holes.map((hole) => (
-              <div
-                key={hole.id}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer"
-                onClick={() => setEditingHole(hole)}
+        {/* Holes Section - Only show if not custom form OR if custom shape is finalized */}
+        {(config.form !== 'custom' || customShapeFinalized) && (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-gray-800">4. Functional Features - Holes ({config.holes.length})</h2>
+              <button
+                onClick={handleAddHole}
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
               >
-                <div className="text-sm">
-                  <span className="font-medium">Ø{hole.diameter}mm</span>
-                  <span className="text-gray-600 ml-2">
-                    @ ({hole.x.toFixed(1)}, {hole.y.toFixed(1)})
-                  </span>
+                + Add Hole
+              </button>
+            </div>
+
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {config.holes.map((hole) => (
+                <div
+                  key={hole.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer"
+                  onClick={() => setEditingHole(hole)}
+                >
+                  <div className="text-sm">
+                    <span className="font-medium">Ø{hole.diameter}mm</span>
+                    <span className="text-gray-600 ml-2">
+                      @ ({hole.x.toFixed(1)}, {hole.y.toFixed(1)})
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setEditingHole(hole)
+                      }}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        removeHole(hole.id)
+                      }}
+                      className="text-red-600 hover:text-red-800 text-sm font-medium"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setEditingHole(hole)
-                    }}
-                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      removeHole(hole.id)
-                    }}
-                    className="text-red-600 hover:text-red-800 text-sm font-medium"
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+              ))}
+            </div>
+          </section>
+        )}
         
         {/* Price Estimate */}
         <section className="bg-blue-50 p-4 rounded-lg border border-blue-200">
