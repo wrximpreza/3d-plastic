@@ -95,17 +95,17 @@ async def generate_cad(
     background_tasks: BackgroundTasks
 ):
     """
-    Generate CAD files (STEP/DXF) from part configuration
-    
+    Generate CAD files (STEP/DXF/GLB) and preview images from part configuration
+
     This endpoint generates CAD files and returns URLs to download them.
     """
     try:
         # Create temporary directory for CAD files
         temp_dir = tempfile.mkdtemp()
         filename_base = f"part_{uuid.uuid4().hex[:8]}"
-        
-        # Generate CAD files
-        step_path, dxf_path, validation_info = cad_service.generate_cad_files(
+
+        # Generate CAD files (STEP, DXF, GLB, and preview images)
+        step_path, dxf_path, glb_path, preview_images, validation_info = cad_service.generate_cad_files(
             request.config,
             temp_dir,
             filename_base
@@ -115,8 +115,20 @@ async def generate_cad(
         step_key = f"cad/{filename_base}.step"
         dxf_key = f"cad/{filename_base}.dxf"
 
+        # Handle both GLB and STL files (backend may return STL if GLB conversion fails)
+        glb_extension = os.path.splitext(glb_path)[1]  # Get actual extension (.glb or .stl)
+        glb_key = f"cad/{filename_base}{glb_extension}"
+
         step_url = storage_service.save_file(step_path, step_key)
         dxf_url = storage_service.save_file(dxf_path, dxf_key)
+        glb_url = storage_service.save_file(glb_path, glb_key)
+
+        # Upload preview images
+        preview_urls = []
+        for i, preview_path in enumerate(preview_images):
+            preview_key = f"cad/{filename_base}_preview_{i}.png"
+            preview_url = storage_service.save_file(preview_path, preview_key)
+            preview_urls.append(preview_url)
 
         # Clean up temp files in background
         background_tasks.add_task(cleanup_temp_files, temp_dir)
@@ -128,6 +140,8 @@ async def generate_cad(
         return CADGenerateResponse(
             step_file_url=step_url,
             dxf_file_url=dxf_url,
+            glb_file_url=glb_url,
+            preview_images=preview_urls,
             metadata={
                 "width": request.config.width,
                 "height": request.config.height,
@@ -136,11 +150,12 @@ async def generate_cad(
                 "holes_count": len(request.config.holes),
                 "area_mm2": area,
                 "volume_mm3": volume,
-                "generated_at": datetime.utcnow().isoformat()
+                "generated_at": datetime.utcnow().isoformat(),
+                "assembly_details": request.config.assembly_details
             },
             validation=validation_info
         )
-        
+
     except CADGenerationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -175,19 +190,24 @@ async def create_order(
         # Generate CAD files
         temp_dir = tempfile.mkdtemp()
         filename_base = f"order_{order_number}"
-        
-        step_path, dxf_path = cad_service.generate_cad_files(
+
+        step_path, dxf_path, glb_path, preview_images, _ = cad_service.generate_cad_files(
             request.config,
             temp_dir,
             filename_base
         )
-        
+
         # Upload to storage
         step_key = f"orders/{order_number}/{filename_base}.step"
         dxf_key = f"orders/{order_number}/{filename_base}.dxf"
-        
+
+        # Handle both GLB and STL files
+        glb_extension = os.path.splitext(glb_path)[1]
+        glb_key = f"orders/{order_number}/{filename_base}{glb_extension}"
+
         step_url = storage_service.save_file(step_path, step_key)
         dxf_url = storage_service.save_file(dxf_path, dxf_key)
+        glb_url = storage_service.save_file(glb_path, glb_key)
         
         # Calculate price
         price = calculate_price(request.config, request.quantity)

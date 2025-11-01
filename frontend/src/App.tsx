@@ -3,7 +3,8 @@ import { ParametricEditor } from './components/ParametricEditor'
 import { LoadingScreen } from './components/LoadingScreen'
 
 // Lazy load the 3D viewer for better initial load performance
-const Viewer3D = lazy(() => import('./components/Viewer3D').then(module => ({ default: module.Viewer3D })))
+// Using GLBViewer to load actual GLB files from backend
+const GLBViewer = lazy(() => import('./components/GLBViewer').then(module => ({ default: module.GLBViewer })))
 
 function App() {
   const [isPanelOpen, setIsPanelOpen] = useState(true)
@@ -42,7 +43,7 @@ function App() {
         `}
       >
         <Suspense fallback={<LoadingScreen />}>
-          <Viewer3D />
+          <GLBViewer />
         </Suspense>
       </main>
     </div>

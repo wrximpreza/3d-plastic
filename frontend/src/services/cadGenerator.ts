@@ -13,6 +13,9 @@ export interface ValidationInfo {
 export interface CADExportResult {
   stepFile: Blob
   dxfFile: Blob
+  glbFile?: Blob
+  glbFileUrl?: string  // Store the original URL to detect file extension
+  previewImages?: Blob[]
   metadata: {
     width: number
     height: number
@@ -20,6 +23,7 @@ export interface CADExportResult {
     material: string
     holeCount: number
     generatedAt: string
+    assemblyDetails?: string
     validation?: ValidationInfo
   }
 }
@@ -42,12 +46,15 @@ export async function generateCADFiles(config: PartConfig): Promise<CADExportRes
           height: config.height,
           thickness: config.thickness,
           material: config.material,
+          color: config.color,
+          corner_radius: config.cornerRadius,
           holes: config.holes.map(h => ({
             id: h.id,
             x: h.x,
             y: h.y,
             diameter: h.diameter
-          }))
+          })),
+          assembly_details: config.assemblyDetails
         },
         format: 'both'
       })
@@ -66,9 +73,31 @@ export async function generateCADFiles(config: PartConfig): Promise<CADExportRes
     const stepBlob = await stepResponse.blob()
     const dxfBlob = await dxfResponse.blob()
 
+    // Fetch GLB/STL file if available
+    let glbBlob: Blob | undefined
+    let glbFileUrl: string | undefined
+    if (data.glb_file_url) {
+      glbFileUrl = data.glb_file_url  // Store URL to detect extension (.glb or .stl)
+      const glbResponse = await fetch(`${API_URL}${data.glb_file_url}`)
+      glbBlob = await glbResponse.blob()
+    }
+
+    // Fetch preview images if available
+    const previewBlobs: Blob[] = []
+    if (data.preview_images && data.preview_images.length > 0) {
+      for (const previewUrl of data.preview_images) {
+        const previewResponse = await fetch(`${API_URL}${previewUrl}`)
+        const previewBlob = await previewResponse.blob()
+        previewBlobs.push(previewBlob)
+      }
+    }
+
     return {
       stepFile: stepBlob,
       dxfFile: dxfBlob,
+      glbFile: glbBlob,
+      glbFileUrl: glbFileUrl,  // Pass the URL so we can detect file extension
+      previewImages: previewBlobs.length > 0 ? previewBlobs : undefined,
       metadata: {
         width: data.metadata.width,
         height: data.metadata.height,
@@ -76,6 +105,7 @@ export async function generateCADFiles(config: PartConfig): Promise<CADExportRes
         material: data.metadata.material,
         holeCount: data.metadata.holes_count,
         generatedAt: data.metadata.generated_at,
+        assemblyDetails: data.metadata.assembly_details,
         validation: data.validation,
       },
     }

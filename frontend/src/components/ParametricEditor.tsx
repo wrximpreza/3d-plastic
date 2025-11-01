@@ -8,6 +8,8 @@ import { generateCADFiles, downloadBlob } from '../services/cadGenerator'
 import { Preview2D } from './Preview2D'
 import { InteractivePreview2D } from './InteractivePreview2D'
 import { HoleEditor } from './HoleEditor'
+import { FormSelector } from './FormSelector'
+import { CustomShapeDrawer } from './CustomShapeDrawer'
 
 const configSchema = z.object({
   width: z.number().min(50).max(3000),
@@ -19,13 +21,16 @@ const configSchema = z.object({
 type ConfigFormData = z.infer<typeof configSchema>
 
 export function ParametricEditor() {
-  const { config, updateDimensions, updateThickness, updateMaterial, addHole, updateHole, removeHole } = useConfigStore()
+  const { config, updateForm, updateDimensions, updateThickness, updateMaterial, updateColor, updateCornerRadius, updateAssemblyDetails, addHole, updateHole, removeHole, addCustomPoint, updateCustomPoint, removeCustomPoint, removeLastCustomPoint, clearCustomPoints } = useConfigStore()
   const [quantity, setQuantity] = useState(1)
   const [isOrdering, setIsOrdering] = useState(false)
   const [orderStatus, setOrderStatus] = useState<string>('')
   const [editingHole, setEditingHole] = useState<Hole | null>(null)
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'warning', message: string } | null>(null)
   const [isGeneratingCAD, setIsGeneratingCAD] = useState(false)
+  const [assemblyDetails, setAssemblyDetails] = useState(config.assemblyDetails || '')
+  const [cornerRadius, setCornerRadius] = useState(config.cornerRadius || 0)
+  const [color, setColor] = useState(config.color || '#FFFFFF')
 
   const { register, watch, formState: { errors } } = useForm<ConfigFormData>({
     resolver: zodResolver(configSchema),
@@ -54,9 +59,36 @@ export function ParametricEditor() {
         updateMaterial(watchedValues.material)
       }
     }, 300) // 300ms debounce for <500ms update requirement
-    
+
     return () => clearTimeout(timeout)
   }, [watchedValues, updateDimensions, updateThickness, updateMaterial])
+
+  // Handle assembly details changes with debouncing
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      updateAssemblyDetails(assemblyDetails)
+    }, 300)
+
+    return () => clearTimeout(timeout)
+  }, [assemblyDetails, updateAssemblyDetails])
+
+  // Handle corner radius changes with debouncing
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      updateCornerRadius(cornerRadius)
+    }, 300)
+
+    return () => clearTimeout(timeout)
+  }, [cornerRadius, updateCornerRadius])
+
+  // Handle color changes with debouncing
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      updateColor(color)
+    }, 300)
+
+    return () => clearTimeout(timeout)
+  }, [color, updateColor])
   
   const handleAddHole = () => {
     const newHole = {
@@ -164,6 +196,18 @@ export function ParametricEditor() {
       downloadBlob(cadFiles.stepFile, 'plastic_part.step')
       downloadBlob(cadFiles.dxfFile, 'plastic_part.dxf')
 
+      // Download GLB file if available
+      if (cadFiles.glbFile) {
+        downloadBlob(cadFiles.glbFile, 'plastic_part.glb')
+      }
+
+      // Download preview images if available
+      if (cadFiles.previewImages && cadFiles.previewImages.length > 0) {
+        cadFiles.previewImages.forEach((img, index) => {
+          downloadBlob(img, `plastic_part_preview_${index + 1}.png`)
+        })
+      }
+
       // Clear notification after 5 seconds
       setTimeout(() => setNotification(null), 5000)
     } catch (error) {
@@ -187,21 +231,44 @@ export function ParametricEditor() {
           <h1 className="text-2xl font-bold text-gray-900">Configure Part</h1>
           <p className="text-sm text-gray-600 mt-1">Customize your plastic part dimensions and holes</p>
         </div>
-        
-        {/* Interactive 2D Preview */}
-        <InteractivePreview2D
-          config={config}
-          onHoleClick={handleHoleClick}
-          onCanvasClick={handleCanvasClick}
-          onHoleDrag={handleHoleDrag}
+
+        {/* Form Selection */}
+        <FormSelector
+          selectedForm={config.form}
+          onSelectForm={updateForm}
         />
 
-        {/* Static 2D Preview */}
-        <Preview2D config={config} />
+        {/* Custom Shape Drawer - Only show for custom form */}
+        {config.form === 'custom' ? (
+          <CustomShapeDrawer
+            points={config.customPoints || []}
+            onAddPoint={addCustomPoint}
+            onUpdatePoint={updateCustomPoint}
+            onRemovePoint={removeCustomPoint}
+            onRemoveLastPoint={removeLastCustomPoint}
+            onClearPoints={clearCustomPoints}
+            width={config.width}
+            height={config.height}
+            cornerRadius={config.cornerRadius}
+          />
+        ) : (
+          <>
+            {/* Interactive 2D Preview */}
+            <InteractivePreview2D
+              config={config}
+              onHoleClick={handleHoleClick}
+              onCanvasClick={handleCanvasClick}
+              onHoleDrag={handleHoleDrag}
+            />
+
+            {/* Static 2D Preview */}
+            <Preview2D config={config} />
+          </>
+        )}
 
         {/* Dimensions Section */}
         <section>
-          <h2 className="text-lg font-semibold text-gray-800 mb-3">Dimensions</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-3">2. Basic Measurements</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -260,11 +327,77 @@ export function ParametricEditor() {
             <option value="POM">POM (Acetal)</option>
           </select>
         </section>
-        
+
+        {/* Details Section - Corner Radius & Color */}
+        <section>
+          <h2 className="text-lg font-semibold text-gray-800 mb-3">3. Adjust Details</h2>
+
+          <div className="space-y-4">
+            {/* Corner Radius */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Corner Radius (mm)
+              </label>
+              <input
+                type="number"
+                value={cornerRadius}
+                onChange={(e) => setCornerRadius(Number(e.target.value))}
+                min="0"
+                max="100"
+                step="1"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                0 = sharp corners, higher values = more rounded
+              </p>
+            </div>
+
+            {/* Color Picker */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Color / Finish
+              </label>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="h-10 w-20 border border-gray-300 rounded cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  placeholder="#FFFFFF"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Select color for material finish visualization
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Assembly Details Section */}
+        <section>
+          <h2 className="text-lg font-semibold text-gray-800 mb-3">Assembly Details</h2>
+          <textarea
+            value={assemblyDetails}
+            onChange={(e) => setAssemblyDetails(e.target.value)}
+            placeholder="Enter assembly specifications, mounting instructions, or other relevant details..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-vertical min-h-[100px]"
+            rows={4}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Optional: Specify how this part should be assembled or any special requirements
+          </p>
+        </section>
+
         {/* Holes Section */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-gray-800">Holes ({config.holes.length})</h2>
+            <h2 className="text-lg font-semibold text-gray-800">4. Functional Features - Holes ({config.holes.length})</h2>
             <button
               onClick={handleAddHole}
               className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"

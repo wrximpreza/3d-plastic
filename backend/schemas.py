@@ -1,6 +1,12 @@
 from pydantic import BaseModel, Field, field_validator
-from typing import List, Optional
+from typing import List, Optional, Literal
 from datetime import datetime
+
+
+class Point(BaseModel):
+    """Point for custom shapes"""
+    x: float
+    y: float
 
 
 class Hole(BaseModel):
@@ -13,12 +19,20 @@ class Hole(BaseModel):
 
 class PartConfig(BaseModel):
     """Part configuration schema"""
+    form: Literal['rectangle', 'circle', 'pentagon', 'custom', 'line'] = Field(
+        default='rectangle',
+        description="Shape of the part"
+    )
     width: float = Field(..., ge=50, le=3000, description="Width in mm")
     height: float = Field(..., ge=50, le=2000, description="Height in mm")
     thickness: float = Field(..., ge=1, le=50, description="Thickness in mm")
     material: str = Field(..., description="Material type (PE 500, PE 1000, PP, POM)")
+    color: Optional[str] = Field(default="#FFFFFF", description="Color hex code for material finish")
+    corner_radius: float = Field(default=0, ge=0, le=100, description="Corner radius in mm (0 = sharp corners)")
     holes: List[Hole] = Field(default_factory=list, description="Array of holes")
-    
+    assembly_details: Optional[str] = Field(default=None, description="Assembly specifications and details")
+    custom_points: Optional[List[Point]] = Field(default=None, description="Custom shape points")
+
     @field_validator('material')
     @classmethod
     def validate_material(cls, v):
@@ -47,6 +61,8 @@ class CADGenerateResponse(BaseModel):
     """Response schema for CAD generation"""
     step_file_url: Optional[str] = None
     dxf_file_url: Optional[str] = None
+    glb_file_url: Optional[str] = None
+    preview_images: List[str] = Field(default_factory=list, description="URLs to preview images")
     metadata: dict
     validation: Optional[ValidationInfo] = None
 

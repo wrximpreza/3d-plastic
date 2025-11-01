@@ -2,7 +2,7 @@ import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei'
 import { PlasticPart } from './PlasticPart'
 import { useConfigStore } from '../store/useConfigStore'
-import { useRef, useImperativeHandle, forwardRef, useState } from 'react'
+import { useRef, useImperativeHandle, forwardRef, useState, useCallback } from 'react'
 import type { OrbitControls as OrbitControlsType } from 'three-stdlib'
 
 interface CameraControlsProps {
@@ -58,9 +58,28 @@ const CameraControls = forwardRef<any, CameraControlsProps>(({ autoRotate }, ref
   )
 })
 
+// Component to capture screenshot
+const ScreenshotCapture = forwardRef<any, {}>((props, ref) => {
+  const { gl, scene, camera } = useThree()
+
+  useImperativeHandle(ref, () => ({
+    captureScreenshot: () => {
+      // Render the scene
+      gl.render(scene, camera)
+
+      // Get the canvas data as a data URL
+      const dataURL = gl.domElement.toDataURL('image/png')
+      return dataURL
+    }
+  }))
+
+  return null
+})
+
 export function Viewer3D() {
   const config = useConfigStore((state) => state.config)
   const controlsRef = useRef<any>(null)
+  const screenshotRef = useRef<any>(null)
   const [autoRotate, setAutoRotate] = useState(false)
 
   const handleZoomIn = () => {
@@ -78,6 +97,18 @@ export function Viewer3D() {
   const toggleAutoRotate = () => {
     setAutoRotate(!autoRotate)
   }
+
+  const handleScreenshot = useCallback(() => {
+    if (screenshotRef.current) {
+      const dataURL = screenshotRef.current.captureScreenshot()
+
+      // Create a download link
+      const link = document.createElement('a')
+      link.download = 'plastic-part-preview.png'
+      link.href = dataURL
+      link.click()
+    }
+  }, [])
 
   return (
     <div className="w-full h-full bg-gradient-to-br from-gray-900 to-gray-800 relative">
@@ -104,6 +135,9 @@ export function Viewer3D() {
 
         {/* Camera controls */}
         <CameraControls ref={controlsRef} autoRotate={autoRotate} />
+
+        {/* Screenshot capture */}
+        <ScreenshotCapture ref={screenshotRef} />
       </Canvas>
 
       {/* Zoom Controls */}
@@ -139,6 +173,13 @@ export function Viewer3D() {
           title={autoRotate ? "Stop Auto-Rotate" : "Auto-Rotate 360°"}
         >
           ↻
+        </button>
+        <button
+          onClick={handleScreenshot}
+          className="w-10 h-10 bg-white/90 hover:bg-white rounded-lg shadow-lg flex items-center justify-center text-gray-800 text-sm transition-colors"
+          title="Take Screenshot"
+        >
+          📷
         </button>
       </div>
 

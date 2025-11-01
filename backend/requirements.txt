@@ -12,4 +12,6 @@ boto3==1.29.7
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 aiofiles==23.2.1
+Pillow==10.1.0
+trimesh==4.0.5
 

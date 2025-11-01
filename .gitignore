@@ -52,3 +52,4 @@ backend/storage/cad_files/
 .env
 backend/.env
 configurator-key.pem
+storage

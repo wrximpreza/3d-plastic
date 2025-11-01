@@ -1,5 +1,12 @@
 import { create } from 'zustand'
 
+export type FormType = 'rectangle' | 'circle' | 'pentagon' | 'custom' | 'line'
+
+export interface Point {
+  x: number
+  y: number
+}
+
 export interface Hole {
   id: string
   x: number // Position from left edge (mm)
@@ -8,60 +15,89 @@ export interface Hole {
 }
 
 export interface PartConfig {
+  form: FormType // Shape of the part
   width: number // mm
   height: number // mm
   thickness: number // mm
   material: string
+  color?: string // Color hex code for material finish
+  cornerRadius: number // Corner radius in mm (0 = sharp corners)
   holes: Hole[]
+  assemblyDetails?: string // Assembly specifications and details
+  customPoints?: Point[] // Custom shape points (for 'custom' form)
 }
 
 interface ConfigStore {
   config: PartConfig
+  updateForm: (form: FormType) => void
   updateDimensions: (width: number, height: number) => void
   updateThickness: (thickness: number) => void
   updateMaterial: (material: string) => void
+  updateColor: (color: string) => void
+  updateCornerRadius: (radius: number) => void
+  updateAssemblyDetails: (details: string) => void
   addHole: (hole: Hole) => void
   updateHole: (id: string, updates: Partial<Hole>) => void
   removeHole: (id: string) => void
+  setCustomPoints: (points: Point[]) => void
+  addCustomPoint: (point: Point) => void
+  updateCustomPoint: (index: number, point: Point) => void
+  removeCustomPoint: (index: number) => void
+  removeLastCustomPoint: () => void
+  clearCustomPoints: () => void
   resetConfig: () => void
 }
 
 const defaultConfig: PartConfig = {
+  form: 'rectangle',
   width: 440,
   height: 600,
   thickness: 5,
   material: 'PE 500',
-  holes: [
-    // Default 8 holes around edges
-    { id: '1', x: 50, y: 50, diameter: 8 },
-    { id: '2', x: 390, y: 50, diameter: 8 },
-    { id: '3', x: 50, y: 550, diameter: 8 },
-    { id: '4', x: 390, y: 550, diameter: 8 },
-    { id: '5', x: 220, y: 50, diameter: 8 },
-    { id: '6', x: 220, y: 550, diameter: 8 },
-    { id: '7', x: 50, y: 300, diameter: 8 },
-    { id: '8', x: 390, y: 300, diameter: 8 },
-  ],
+  color: '#FFFFFF',
+  cornerRadius: 0,
+  holes: [],
+  customPoints: [],
 }
 
 export const useConfigStore = create<ConfigStore>((set) => ({
   config: defaultConfig,
-  
+
+  updateForm: (form) =>
+    set((state) => ({
+      config: { ...state.config, form },
+    })),
+
   updateDimensions: (width, height) =>
     set((state) => ({
       config: { ...state.config, width, height },
     })),
-  
+
   updateThickness: (thickness) =>
     set((state) => ({
       config: { ...state.config, thickness },
     })),
-  
+
   updateMaterial: (material) =>
     set((state) => ({
       config: { ...state.config, material },
     })),
-  
+
+  updateColor: (color) =>
+    set((state) => ({
+      config: { ...state.config, color },
+    })),
+
+  updateCornerRadius: (radius) =>
+    set((state) => ({
+      config: { ...state.config, cornerRadius: radius },
+    })),
+
+  updateAssemblyDetails: (details) =>
+    set((state) => ({
+      config: { ...state.config, assemblyDetails: details },
+    })),
+
   addHole: (hole) =>
     set((state) => ({
       config: {
@@ -69,7 +105,7 @@ export const useConfigStore = create<ConfigStore>((set) => ({
         holes: [...state.config.holes, hole],
       },
     })),
-  
+
   updateHole: (id, updates) =>
     set((state) => ({
       config: {
@@ -79,7 +115,7 @@ export const useConfigStore = create<ConfigStore>((set) => ({
         ),
       },
     })),
-  
+
   removeHole: (id) =>
     set((state) => ({
       config: {
@@ -87,7 +123,51 @@ export const useConfigStore = create<ConfigStore>((set) => ({
         holes: state.config.holes.filter((hole) => hole.id !== id),
       },
     })),
-  
+
+  setCustomPoints: (points) =>
+    set((state) => ({
+      config: { ...state.config, customPoints: points },
+    })),
+
+  addCustomPoint: (point) =>
+    set((state) => ({
+      config: {
+        ...state.config,
+        customPoints: [...(state.config.customPoints || []), point],
+      },
+    })),
+
+  updateCustomPoint: (index, point) =>
+    set((state) => ({
+      config: {
+        ...state.config,
+        customPoints: (state.config.customPoints || []).map((p, i) =>
+          i === index ? point : p
+        ),
+      },
+    })),
+
+  removeCustomPoint: (index) =>
+    set((state) => ({
+      config: {
+        ...state.config,
+        customPoints: (state.config.customPoints || []).filter((_, i) => i !== index),
+      },
+    })),
+
+  removeLastCustomPoint: () =>
+    set((state) => ({
+      config: {
+        ...state.config,
+        customPoints: (state.config.customPoints || []).slice(0, -1),
+      },
+    })),
+
+  clearCustomPoints: () =>
+    set((state) => ({
+      config: { ...state.config, customPoints: [] },
+    })),
+
   resetConfig: () => set({ config: defaultConfig }),
 }))
 
