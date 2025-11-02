@@ -13,7 +13,6 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     freecad-python3 \
     freecad \
-    libfreecad-python3-0.20 \
     wget \
     curl \
     && apt-get clean \
