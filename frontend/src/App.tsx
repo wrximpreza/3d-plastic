@@ -1,5 +1,7 @@
 import { lazy, Suspense } from 'react'
+import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
+import { RightSidebar } from './components/RightSidebar'
 import { Canvas } from './components/Canvas'
 import { FloatingFormSelector } from './components/FloatingFormSelector'
 import { DimensionsPanel } from './components/DimensionsPanel'
@@ -16,11 +18,14 @@ function App() {
   const { config } = useConfigStore()
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-white">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-white">
+      {/* Header */}
+      <Header />
+
       {/* Main Content Area */}
-      <main className="flex-1 relative flex flex-col">
+      <div className="flex flex-1 overflow-hidden">
         {/* Canvas Area with dot grid background */}
-        <div className="flex-1 relative dot-grid">
+        <main className="flex-1 relative dot-grid">
           {/* Left Control Panel - floating */}
           <Sidebar />
 
@@ -42,8 +47,11 @@ function App() {
               <GLBViewer />
             </Suspense>
           )}
-        </div>
-      </main>
+        </main>
+
+        {/* Right Sidebar */}
+        <RightSidebar />
+      </div>
     </div>
   )
 }
