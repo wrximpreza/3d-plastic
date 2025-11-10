@@ -1,5 +1,5 @@
 import { Canvas, useThree, useLoader } from '@react-three/fiber'
-import { OrbitControls, PerspectiveCamera, useGLTF } from '@react-three/drei'
+import { OrbitControls, PerspectiveCamera, useGLTF, Html } from '@react-three/drei'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader'
 import { PlasticPart } from './PlasticPart'
 import { useConfigStore } from '../store/useConfigStore'
@@ -7,6 +7,38 @@ import { useRef, useImperativeHandle, forwardRef, useState, useCallback, useEffe
 import type { OrbitControls as OrbitControlsType } from 'three-stdlib'
 import { generateCADFiles } from '../services/cadGenerator'
 import * as THREE from 'three'
+
+// Component to show measurements in 3D
+function Measurements3D() {
+  const { config } = useConfigStore()
+
+  if (!config.showMeasurements) return null
+
+  return (
+    <>
+      {/* Length measurement (horizontal, top) */}
+      <Html position={[0, config.height / 2 + 50, 0]} center>
+        <div className="bg-white px-2 py-1 rounded shadow-sm border border-gray-300 text-xs font-medium whitespace-nowrap">
+          Length: {config.width} mm
+        </div>
+      </Html>
+
+      {/* Width measurement (depth, right side) */}
+      <Html position={[config.width / 2 + 50, 0, 0]} center>
+        <div className="bg-white px-2 py-1 rounded shadow-sm border border-gray-300 text-xs font-medium whitespace-nowrap">
+          Width: {config.thickness} mm
+        </div>
+      </Html>
+
+      {/* Height measurement (vertical, left side) */}
+      <Html position={[-config.width / 2 - 50, 0, 0]} center>
+        <div className="bg-white px-2 py-1 rounded shadow-sm border border-gray-300 text-xs font-medium whitespace-nowrap">
+          Height: {config.height} mm
+        </div>
+      </Html>
+    </>
+  )
+}
 
 interface CameraControlsProps {
   autoRotate: boolean
@@ -20,7 +52,7 @@ const CameraControls = forwardRef<any, CameraControlsProps>(({ autoRotate }, ref
     zoomIn: () => {
       if (controlsRef.current) {
         const distance = camera.position.length()
-        const newDistance = Math.max(200, distance * 0.8)
+        const newDistance = Math.max(400, distance * 0.8)
         camera.position.multiplyScalar(newDistance / distance)
         controlsRef.current.update()
       }
@@ -28,14 +60,14 @@ const CameraControls = forwardRef<any, CameraControlsProps>(({ autoRotate }, ref
     zoomOut: () => {
       if (controlsRef.current) {
         const distance = camera.position.length()
-        const newDistance = Math.min(2000, distance * 1.25)
+        const newDistance = Math.min(3000, distance * 1.25)
         camera.position.multiplyScalar(newDistance / distance)
         controlsRef.current.update()
       }
     },
     reset: () => {
       if (controlsRef.current) {
-        camera.position.set(0, 400, 800)
+        camera.position.set(0, 600, 1200)
         controlsRef.current.target.set(0, 0, 0)
         controlsRef.current.update()
       }
@@ -47,8 +79,8 @@ const CameraControls = forwardRef<any, CameraControlsProps>(({ autoRotate }, ref
       ref={controlsRef}
       enableDamping
       dampingFactor={0.05}
-      minDistance={200}
-      maxDistance={2000}
+      minDistance={400}
+      maxDistance={3000}
       enableZoom={true}
       zoomSpeed={1.2}
       autoRotate={autoRotate}
@@ -135,7 +167,7 @@ const ScreenshotCapture = forwardRef<any, {}>((props, ref) => {
       }
 
       // View 1: Front view
-      camera.position.set(0, 0, 800)
+      camera.position.set(0, 0, 1200)
       if (cameraControls?.target) {
         cameraControls.target.set(0, 0, 0)
         cameraControls.update()
@@ -148,7 +180,7 @@ const ScreenshotCapture = forwardRef<any, {}>((props, ref) => {
       })
 
       // View 2: Top view
-      camera.position.set(0, 800, 0)
+      camera.position.set(0, 1200, 0)
       if (cameraControls?.target) {
         cameraControls.target.set(0, 0, 0)
         cameraControls.update()
@@ -161,7 +193,7 @@ const ScreenshotCapture = forwardRef<any, {}>((props, ref) => {
       })
 
       // View 3: Isometric view
-      camera.position.set(400, 400, 600)
+      camera.position.set(600, 600, 900)
       if (cameraControls?.target) {
         cameraControls.target.set(0, 0, 0)
         cameraControls.update()
@@ -404,29 +436,34 @@ export function GLBViewer() {
     setTimeout(() => URL.revokeObjectURL(url), 100)
   }, [config])
 
-  return (
-    <div className="w-full h-full bg-gradient-to-br from-gray-900 to-gray-800 relative">
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-900/50 z-10">
-          <div className="text-white text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-500 mb-2"></div>
-            <p>Generating 3D model...</p>
-          </div>
-        </div>
-      )}
+  // Don't render anything if no form is selected
+  if (!config.form) {
+    return (
+      <div className="relative w-full h-full bg-white animate-fadeIn">
+        {/* Dotted background - same as 2D mode */}
+        <div className="absolute inset-0 dot-grid" />
+      </div>
+    )
+  }
 
-      {error && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded-lg z-10">
-          {error}
-        </div>
-      )}
+  return (
+    <div className="relative w-full h-full bg-white animate-fadeIn">
+      {/* Dotted background - same as 2D mode */}
+      <div className="absolute inset-0 dot-grid" />
 
       <Canvas
         shadows
         dpr={[1, 2]}
         performance={{ min: 0.5 }}
+        className="absolute inset-0"
+        gl={{
+          alpha: true,
+          preserveDrawingBuffer: true,
+          antialias: true
+        }}
+        style={{ background: 'transparent', pointerEvents: 'auto' }}
       >
-        <PerspectiveCamera makeDefault position={[0, 400, 800]} fov={50} />
+        <PerspectiveCamera makeDefault position={[0, 600, 1200]} fov={50} />
 
         {/* Lighting */}
         <ambientLight intensity={0.4} />
@@ -446,144 +483,15 @@ export function GLBViewer() {
           <PlasticPart config={config} />
         )}
 
+        {/* 3D Measurements */}
+        <Measurements3D />
+
         {/* Camera controls */}
         <CameraControls ref={controlsRef} autoRotate={autoRotate} />
-        
+
         {/* Screenshot capture */}
         <ScreenshotCapture ref={screenshotRef} />
       </Canvas>
-
-      {/* Zoom Controls */}
-      <div className="absolute bottom-4 right-4 flex flex-col gap-2">
-        <button
-          onClick={handleGenerate2DImages}
-          className="w-10 h-10 bg-purple-500 hover:bg-purple-600 text-white rounded-lg shadow-lg flex items-center justify-center text-sm transition-colors"
-          title="Generate 1-3 2D Photos"
-        >
-          🖼️
-        </button>
-        <button
-          onClick={handleDownload3DModel}
-          disabled={isLoading}
-          className="w-10 h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-lg flex items-center justify-center text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          title={`Download 3D Model (${glbFileExtension.toUpperCase().replace('.', '')})`}
-        >
-          {isLoading ? '⏳' : '💾'}
-        </button>
-        <button
-          onClick={handleZoomIn}
-          className="w-10 h-10 bg-white/90 hover:bg-white rounded-lg shadow-lg flex items-center justify-center text-gray-800 font-bold text-xl transition-colors"
-          title="Zoom In"
-        >
-          +
-        </button>
-        <button
-          onClick={handleZoomOut}
-          className="w-10 h-10 bg-white/90 hover:bg-white rounded-lg shadow-lg flex items-center justify-center text-gray-800 font-bold text-xl transition-colors"
-          title="Zoom Out"
-        >
-          −
-        </button>
-        <button
-          onClick={handleReset}
-          className="w-10 h-10 bg-white/90 hover:bg-white rounded-lg shadow-lg flex items-center justify-center text-gray-800 text-xs transition-colors"
-          title="Reset View"
-        >
-          ⟲
-        </button>
-        <button
-          onClick={toggleAutoRotate}
-          className={`w-10 h-10 rounded-lg shadow-lg flex items-center justify-center font-bold text-xl transition-colors ${
-            autoRotate
-              ? 'bg-blue-500 hover:bg-blue-600 text-white'
-              : 'bg-white/90 hover:bg-white text-gray-800'
-          }`}
-          title={autoRotate ? "Stop Auto-Rotate" : "Auto-Rotate 360°"}
-        >
-          ↻
-        </button>
-        <button
-          onClick={handleScreenshot}
-          className="w-10 h-10 bg-white/90 hover:bg-white rounded-lg shadow-lg flex items-center justify-center text-gray-800 text-sm transition-colors"
-          title="Take Screenshot"
-        >
-          📷
-        </button>
-      </div>
-
-      {/* Instructions */}
-      <div className="absolute bottom-4 left-4 bg-black/50 text-white px-3 py-2 rounded text-xs max-w-xs">
-        <div className="font-semibold mb-1">3D Controls:</div>
-        <div>• Mouse wheel / Pinch: Zoom</div>
-        <div>• Left click + drag: Rotate</div>
-        <div>• Right click + drag: Pan</div>
-        <div className="mt-2 text-purple-300 text-[10px]">
-          Click 🖼️ to generate 2D photos
-        </div>
-        <div className="mt-1 text-blue-300 text-[10px]">
-          Click 💾 to download 3D model
-        </div>
-      </div>
-
-      {/* 2D Images Preview Modal */}
-      {show2DPreview && generated2DImages.length > 0 && (
-        <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-20 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-800">Generated 2D Photos</h2>
-              <button
-                onClick={() => setShow2DPreview(false)}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              {generated2DImages.map((img, index) => (
-                <div key={index} className="border rounded-lg overflow-hidden">
-                  <div className="bg-gray-100 px-3 py-2 font-semibold text-sm text-gray-700 capitalize">
-                    {img.view} View
-                  </div>
-                  <img
-                    src={img.dataURL}
-                    alt={`${img.view} view`}
-                    className="w-full h-auto bg-gray-50"
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={handleDownload2DImages}
-                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-              >
-                Download All Images
-              </button>
-              <button
-                onClick={() => setShow2DPreview(false)}
-                className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Auto-generated notification */}
-      {generated2DImages.length > 0 && !show2DPreview && (
-        <div className="absolute top-4 right-4 bg-purple-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
-          <span>✅ {generated2DImages.length} 2D images generated</span>
-          <button
-            onClick={() => setShow2DPreview(true)}
-            className="underline hover:no-underline"
-          >
-            View
-          </button>
-        </div>
-      )}
     </div>
   )
 }

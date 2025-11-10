@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type FormType = 'rectangle' | 'circle' | 'pentagon' | 'custom' | 'line'
+export type FormType = 'rectangle' | 'circle' | 'pentagon' | 'custom' | 'line' | null
 
 export interface Point {
   x: number
@@ -14,6 +14,9 @@ export interface Hole {
   diameter: number // mm
 }
 
+export type ViewMode = 'front' | 'side' | 'top'
+export type DisplayMode = '2d' | '3d'
+
 export interface PartConfig {
   form: FormType // Shape of the part
   width: number // mm
@@ -25,6 +28,9 @@ export interface PartConfig {
   holes: Hole[]
   assemblyDetails?: string // Assembly specifications and details
   customPoints?: Point[] // Custom shape points (for 'custom' form)
+  showMeasurements: boolean // Show measurements on canvas
+  viewMode: ViewMode // Current view mode
+  displayMode: DisplayMode // 2D or 3D display
 }
 
 interface ConfigStore {
@@ -37,9 +43,13 @@ interface ConfigStore {
   updateColor: (color: string) => void
   updateCornerRadius: (radius: number) => void
   updateAssemblyDetails: (details: string) => void
+  updateShowMeasurements: (show: boolean) => void
+  updateViewMode: (mode: ViewMode) => void
+  updateDisplayMode: (mode: DisplayMode) => void
   addHole: (hole: Hole) => void
   updateHole: (id: string, updates: Partial<Hole>) => void
   removeHole: (id: string) => void
+  removeAllHoles: () => void
   setCustomPoints: (points: Point[]) => void
   addCustomPoint: (point: Point) => void
   updateCustomPoint: (index: number, point: Point) => void
@@ -52,27 +62,57 @@ interface ConfigStore {
 }
 
 const defaultConfig: PartConfig = {
-  form: 'rectangle',
-  width: 440,
-  height: 600,
-  thickness: 5,
-  material: 'PE 500',
-  color: '#FFFFFF',
-  cornerRadius: 0,
+  form: null, // No form selected initially
+  width: 400, // Default dimensions when form is selected (matches image)
+  height: 400,
+  thickness: 16,
+  material: 'PEEK',
+  color: '#6B6B6B', // Gray color
+  cornerRadius: 0, // Sharp corners by default
   holes: [],
   customPoints: [],
+  showMeasurements: false, // Measurements disabled by default
+  viewMode: 'front',
+  displayMode: '2d',
 }
 
 export const useConfigStore = create<ConfigStore>((set) => ({
   config: defaultConfig,
   customShapeFinalized: false,
+  savedCustomShape: null as { points: Point[], finalized: boolean } | null,
 
   updateForm: (form) =>
-    set((state) => ({
-      config: { ...state.config, form },
-      // Reset customShapeFinalized when switching forms
-      customShapeFinalized: form === 'custom' ? false : state.customShapeFinalized,
-    })),
+    set((state) => {
+      let customPoints: Point[] = []
+      let customShapeFinalized = false
+
+      if (form === 'custom') {
+        // Restore saved custom shape if exists
+        if ((state as any).savedCustomShape) {
+          customPoints = (state as any).savedCustomShape.points
+          customShapeFinalized = (state as any).savedCustomShape.finalized
+        }
+      } else {
+        // Save current custom shape before switching away
+        if (state.config.form === 'custom' && state.config.customPoints && state.config.customPoints.length > 0) {
+          (state as any).savedCustomShape = {
+            points: state.config.customPoints,
+            finalized: state.customShapeFinalized
+          }
+        }
+      }
+
+      return {
+        config: {
+          ...state.config,
+          form,
+          holes: [], // Clear holes when changing form
+          customPoints
+        },
+        customShapeFinalized,
+        savedCustomShape: (state as any).savedCustomShape
+      }
+    }),
 
   updateDimensions: (width, height) =>
     set((state) => ({
@@ -104,6 +144,21 @@ export const useConfigStore = create<ConfigStore>((set) => ({
       config: { ...state.config, assemblyDetails: details },
     })),
 
+  updateShowMeasurements: (show) =>
+    set((state) => ({
+      config: { ...state.config, showMeasurements: show },
+    })),
+
+  updateViewMode: (mode) =>
+    set((state) => ({
+      config: { ...state.config, viewMode: mode },
+    })),
+
+  updateDisplayMode: (mode) =>
+    set((state) => ({
+      config: { ...state.config, displayMode: mode },
+    })),
+
   addHole: (hole) =>
     set((state) => ({
       config: {
@@ -127,6 +182,14 @@ export const useConfigStore = create<ConfigStore>((set) => ({
       config: {
         ...state.config,
         holes: state.config.holes.filter((hole) => hole.id !== id),
+      },
+    })),
+
+  removeAllHoles: () =>
+    set((state) => ({
+      config: {
+        ...state.config,
+        holes: [],
       },
     })),
 

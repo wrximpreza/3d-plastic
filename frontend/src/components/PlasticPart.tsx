@@ -37,6 +37,13 @@ const materialProperties = {
     opacity: 0.9,
     edgeColor: '#6b7280', // Gray
   },
+  'PEEK': {
+    color: '#6B6B6B', // Gray color
+    metalness: 0.0,
+    roughness: 0.5,
+    opacity: 1.0,
+    edgeColor: '#000000', // Black edge
+  },
 }
 
 // Helper function to create rounded polygon from points
@@ -267,17 +274,13 @@ export function PlasticPart({ config }: PlasticPartProps) {
 
   // Get material properties based on selected material
   const matProps = useMemo(() => {
-    const baseProps = materialProperties[config.material as keyof typeof materialProperties] || materialProperties['PE 500']
+    const baseProps = materialProperties[config.material as keyof typeof materialProperties] || materialProperties['PEEK']
 
-    // Override color if custom color is specified
-    if (config.color && config.color !== '#FFFFFF') {
-      return {
-        ...baseProps,
-        color: config.color,
-      }
+    // Always use the config color (which defaults to #C4B5A0)
+    return {
+      ...baseProps,
+      color: config.color,
     }
-
-    return baseProps
   }, [config.material, config.color])
 
   // Subtle rotation animation
@@ -299,15 +302,15 @@ export function PlasticPart({ config }: PlasticPartProps) {
         color={matProps.color}
         metalness={matProps.metalness}
         roughness={matProps.roughness}
-        transparent
+        transparent={matProps.opacity < 1.0}
         opacity={matProps.opacity}
         side={THREE.DoubleSide}
       />
 
-      {/* Wireframe overlay for better visibility */}
+      {/* Edge lines for better visibility */}
       <lineSegments>
         <edgesGeometry args={[geometry]} />
-        <lineBasicMaterial color={matProps.edgeColor} linewidth={1} />
+        <lineBasicMaterial color={matProps.edgeColor} linewidth={2} />
       </lineSegments>
     </mesh>
   )

@@ -1,50 +1,48 @@
-import { useState, lazy, Suspense } from 'react'
-import { ParametricEditor } from './components/ParametricEditor'
-import { LoadingScreen } from './components/LoadingScreen'
+import { lazy, Suspense } from 'react'
+import { Sidebar } from './components/Sidebar'
+import { Canvas } from './components/Canvas'
+import { FloatingFormSelector } from './components/FloatingFormSelector'
+import { DimensionsPanel } from './components/DimensionsPanel'
+import { OpeningsPanel } from './components/OpeningsPanel'
+import { useConfigStore } from './store/useConfigStore'
 
 // Lazy load the 3D viewer for better initial load performance
-// Using GLBViewer to load actual GLB files from backend
 const GLBViewer = lazy(() => import('./components/GLBViewer').then(module => ({ default: module.GLBViewer })))
 
+// Simple fallback component (no loading screen)
+const EmptyFallback = () => <div className="w-full h-full bg-white" />
+
 function App() {
-  const [isPanelOpen, setIsPanelOpen] = useState(true)
+  const { config } = useConfigStore()
 
   return (
-    <div className="flex flex-col md:flex-row h-screen w-screen overflow-hidden">
-      {/* Mobile Header */}
-      <div className="md:hidden bg-primary text-white p-4 flex items-center justify-between">
-        <h1 className="text-lg font-bold">Plastic Configurator</h1>
-        <button
-          onClick={() => setIsPanelOpen(!isPanelOpen)}
-          className="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
-        >
-          {isPanelOpen ? 'Show 3D' : 'Edit'}
-        </button>
-      </div>
+    <div className="flex h-screen w-screen overflow-hidden bg-white">
+      {/* Main Content Area */}
+      <main className="flex-1 relative flex flex-col">
+        {/* Canvas Area with dot grid background */}
+        <div className="flex-1 relative dot-grid">
+          {/* Left Control Panel - floating */}
+          <Sidebar />
 
-      {/* Editor Panel - Responsive */}
-      <aside
-        className={`
-          ${isPanelOpen ? 'block' : 'hidden md:block'}
-          w-full md:w-96 lg:w-[28rem]
-          h-[calc(100vh-64px)] md:h-screen
-          flex-shrink-0
-        `}
-      >
-        <ParametricEditor />
-      </aside>
+          {/* Floating Form Selector */}
+          <FloatingFormSelector />
 
-      {/* 3D Viewer - Responsive with lazy loading */}
-      <main
-        className={`
-          ${isPanelOpen ? 'hidden md:block' : 'block'}
-          flex-1 relative
-          h-[calc(100vh-64px)] md:h-screen
-        `}
-      >
-        <Suspense fallback={<LoadingScreen />}>
-          <GLBViewer />
-        </Suspense>
+          {/* Dimensions Panel - floating on right side when form is selected */}
+          {config.form && (
+            <div className="absolute top-4 right-4 z-10 space-y-3">
+              <DimensionsPanel />
+              <OpeningsPanel />
+            </div>
+          )}
+
+          {config.displayMode === '2d' ? (
+            <Canvas />
+          ) : (
+            <Suspense fallback={<EmptyFallback />}>
+              <GLBViewer />
+            </Suspense>
+          )}
+        </div>
       </main>
     </div>
   )

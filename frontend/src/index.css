@@ -22,11 +22,31 @@ body {
   height: 100vh;
 }
 
+/* Reusable dotted grid background to match design */
+.dot-grid {
+  background-image: radial-gradient(circle, #D1D5DB 1px, transparent 1px);
+  background-size: 12px 12px; /* dot spacing */
+}
+
 /* Touch-friendly controls */
 @media (hover: none) and (pointer: coarse) {
   button, input, select {
     min-height: 44px;
     min-width: 44px;
   }
+}
+
+/* Fade-in animation for smooth transitions */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.8s ease-in-out;
 }
 
